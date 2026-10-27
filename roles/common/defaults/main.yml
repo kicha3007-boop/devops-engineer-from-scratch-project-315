@@ -8,6 +8,3 @@ common_packages:
   - python3-requests
   - htop
   - jq
-
-# Сколько секунд считать кеш apt свежим (повторный прогон не дёргает apt update)
-common_apt_cache_valid_time: 3600
