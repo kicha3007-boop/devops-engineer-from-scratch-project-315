@@ -22,6 +22,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  # В dev-профиле (H2 в памяти) схему создаёт Hibernate, миграции Flyway
+  # включаются только в prod (см. application-prod.yml)
+  flyway:
+    enabled: false
   h2:
     console:
       enabled: true

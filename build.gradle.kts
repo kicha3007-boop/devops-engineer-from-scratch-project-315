@@ -34,6 +34,8 @@ dependencies {
     implementation(libs.springBootStarterDataJpa)
     implementation(libs.springBootStarterValidation)
     implementation(libs.springBootStarterActuator)
+    implementation(libs.springBootStarterFlyway)
+    runtimeOnly(libs.flywayPostgresql)
     implementation(libs.mapstruct)
     implementation(libs.instancioCore)
     implementation(libs.springdocOpenapi)

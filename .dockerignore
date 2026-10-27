@@ -1,0 +1,20 @@
+# В контекст сборки образа попадает только код приложения
+.git
+.github
+.gradle
+build
+frontend/node_modules
+frontend/dist
+src/main/resources/static
+
+# Инфраструктура и локальный стенд образу не нужны
+roles
+inventories
+group_vars
+terraform
+lab
+playbook.yml
+requirements.yml
+ansible.cfg
+.vault_pass*
+*.md

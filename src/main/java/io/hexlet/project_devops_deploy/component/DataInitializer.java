@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -27,6 +28,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Component
 @Profile("!test")
+@ConditionalOnProperty(
+        prefix = "app.seed",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements ApplicationRunner {

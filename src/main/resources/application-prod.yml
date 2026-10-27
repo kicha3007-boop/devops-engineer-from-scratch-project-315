@@ -8,9 +8,14 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+  # Схема БД в prod меняется только миграциями Flyway (src/main/resources/db/migration).
+  # При деплое их применяет отдельный одноразовый контейнер, а основному сервису
+  # передаётся SPRING_FLYWAY_ENABLED=false — он лишь сверяет схему с сущностями.
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
   output:
     ansi:

@@ -335,6 +335,9 @@ springBootStarterTest = { module = "org.springframework.boot:spring-boot-starter
 springBootWebmvcTest = { module = "org.springframework.boot:spring-boot-webmvc-test", version.ref = "spring-boot-version" }
 springBootDevtools = { module = "org.springframework.boot:spring-boot-devtools", version.ref = "spring-boot-version" }
 springBootConfigProcessor = { module = "org.springframework.boot:spring-boot-configuration-processor", version.ref = "spring-boot-version" }
+springBootStarterFlyway = { module = "org.springframework.boot:spring-boot-starter-flyway", version.ref = "spring-boot-version" }
+# Flyway: поддержка PostgreSQL вынесена в отдельный модуль, версия — из BOM Spring Boot
+flywayPostgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 # Spring Security Test
 springSecurityTest = { module = "org.springframework.security:spring-security-test", version.ref = "spring-security-test-version" }
 # JUnit
