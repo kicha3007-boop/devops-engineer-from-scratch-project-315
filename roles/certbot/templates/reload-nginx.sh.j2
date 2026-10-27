@@ -1,0 +1,6 @@
+#!/bin/sh
+# {{ ansible_managed }}
+# Хук certbot: вызывается после каждого успешного продления сертификата
+set -e
+nginx -t -q
+systemctl reload nginx

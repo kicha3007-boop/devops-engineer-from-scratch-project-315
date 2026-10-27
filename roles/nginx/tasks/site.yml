@@ -1,0 +1,25 @@
+---
+# Блок HTTPS появляется в конфиге, когда сертификат уже выпущен (роль certbot
+# вызывает эти задачи повторно сразу после выпуска)
+- name: Проверить, выпущен ли сертификат
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ app_domain }}/fullchain.pem"
+  register: nginx_cert
+
+- name: Шаблон сайта (reverse proxy, кеш статики и картинок, TLS)
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ nginx_site_name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    nginx_tls_ready: "{{ nginx_cert.stat.exists }}"
+  notify: reload nginx
+
+- name: Включить сайт
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ nginx_site_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ nginx_site_name }}.conf"
+    state: link
+  notify: reload nginx

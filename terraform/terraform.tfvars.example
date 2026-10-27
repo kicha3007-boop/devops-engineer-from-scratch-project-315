@@ -1,0 +1,4 @@
+# cp terraform/terraform.tfvars.example terraform/terraform.tfvars (в git не попадает)
+folder_id      = "b1g..."
+ssh_public_key = "ssh-ed25519 AAAA... you@host"
+# dns_zone     = "example.ru"

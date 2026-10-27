@@ -1,0 +1,13 @@
+---
+# Базовые пакеты сервера. python3-requests нужен модулям community.docker на сервере.
+common_packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - acl
+  - python3-requests
+  - htop
+  - jq
+
+# Сколько секунд считать кеш apt свежим (повторный прогон не дёргает apt update)
+common_apt_cache_valid_time: 3600

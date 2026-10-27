@@ -1,0 +1,22 @@
+---
+# Публичный HTTPS-порт: на настоящем сервере 443. На локальном стенде 443 проброшен
+# на другой порт хоста — он нужен в адресе редиректа HTTP -> HTTPS.
+nginx_public_https_port: 443
+nginx_client_max_body_size: 10m
+nginx_acme_webroot: /var/www/letsencrypt
+nginx_cache_dir: /var/cache/nginx/bulletins
+nginx_site_name: bulletins
+
+# Откуда nginx берёт картинки для /media/: бакет S3 (path-style адрес)
+nginx_media_upstream: "{{ app_s3_endpoint }}/{{ app_s3_bucket }}/"
+
+# Современные наборы шифров (профиль Mozilla Intermediate): только AEAD и ECDHE
+nginx_ssl_protocols: TLSv1.2 TLSv1.3
+nginx_ssl_ciphers_list:
+  - ECDHE-ECDSA-AES128-GCM-SHA256
+  - ECDHE-RSA-AES128-GCM-SHA256
+  - ECDHE-ECDSA-AES256-GCM-SHA384
+  - ECDHE-RSA-AES256-GCM-SHA384
+  - ECDHE-ECDSA-CHACHA20-POLY1305
+  - ECDHE-RSA-CHACHA20-POLY1305
+nginx_ssl_ciphers: "{{ nginx_ssl_ciphers_list | join(':') }}"

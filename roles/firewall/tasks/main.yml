@@ -1,0 +1,30 @@
+---
+- name: Установить ufw
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+  when: firewall_enabled | bool
+
+# В режиме --check на чистом сервере ufw ещё не установлен — настраивать нечего
+- name: Настроить правила ufw
+  when:
+    - firewall_enabled | bool
+    - not ansible_check_mode or 'ufw' in ansible_facts.packages
+  block:
+    - name: Разрешить нужные порты (SSH, HTTP, HTTPS)
+      community.general.ufw:
+        rule: allow
+        port: "{{ item | string }}"
+        proto: tcp
+      loop: "{{ firewall_allowed_tcp_ports }}"
+
+    - name: Разрешить исходящие соединения
+      community.general.ufw:
+        default: allow
+        direction: outgoing
+
+    - name: Запретить остальные входящие и включить ufw
+      community.general.ufw:
+        state: enabled
+        default: deny
+        direction: incoming

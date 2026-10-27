@@ -1,0 +1,56 @@
+---
+- name: Установить nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+
+- name: Настроить nginx
+  when: not ansible_check_mode or 'nginx' in ansible_facts.packages
+  block:
+    - name: Оставить в nginx.conf только TLS 1.2 и 1.3, спрятать версию nginx
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - regexp: '^\s*#?\s*ssl_protocols\s'
+          line: "\tssl_protocols {{ nginx_ssl_protocols }};"
+        - regexp: '^\s*#?\s*ssl_prefer_server_ciphers\s'
+          line: "\tssl_prefer_server_ciphers off;"
+        - regexp: '^\s*#?\s*server_tokens\s'
+          line: "\tserver_tokens off;"
+      notify: reload nginx
+
+    - name: Убрать сайт-заглушку nginx
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: reload nginx
+
+    - name: Создать каталог для проверок ACME (HTTP-01)
+      ansible.builtin.file:
+        path: "{{ nginx_acme_webroot }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Создать каталог кеша nginx
+      ansible.builtin.file:
+        path: "{{ nginx_cache_dir }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: "0750"
+
+    - name: Разложить конфигурацию сайта
+      ansible.builtin.import_tasks: site.yml
+
+    - name: Запустить nginx и включить автозапуск
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Применить изменения конфигурации сразу
+      ansible.builtin.meta: flush_handlers

@@ -1,0 +1,7 @@
+---
+# Межсетевой экран ufw: всё входящее запрещено, кроме перечисленных портов
+firewall_enabled: true
+firewall_allowed_tcp_ports:
+  - 22
+  - 80
+  - 443

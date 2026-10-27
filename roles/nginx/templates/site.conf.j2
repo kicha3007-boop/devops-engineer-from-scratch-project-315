@@ -1,0 +1,93 @@
+# {{ ansible_managed }}
+{% set https_port_suffix = '' if nginx_public_https_port | int == 443 else ':' ~ nginx_public_https_port %}
+{% set media_host = nginx_media_upstream | urlsplit('netloc') %}
+
+# Кеш собранного фронтенда (файлы с хешем в имени) и картинок объявлений из S3
+proxy_cache_path {{ nginx_cache_dir }}/static levels=1:2 keys_zone=bulletins_static:10m max_size=512m inactive=7d use_temp_path=off;
+proxy_cache_path {{ nginx_cache_dir }}/media levels=1:2 keys_zone=bulletins_media:10m max_size=2g inactive=30d use_temp_path=off;
+
+upstream bulletins_app {
+    server {{ app_bind_address }}:{{ app_port }};
+    keepalive 16;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{ app_domain }};
+
+    # Проверки Let's Encrypt (HTTP-01) — единственное, что отдаётся по HTTP
+    location ^~ /.well-known/acme-challenge/ {
+        root {{ nginx_acme_webroot }};
+        default_type text/plain;
+    }
+
+    location / {
+        return 301 https://$host{{ https_port_suffix }}$request_uri;
+    }
+}
+{% if nginx_tls_ready | bool %}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name {{ app_domain }};
+
+    ssl_certificate     /etc/letsencrypt/live/{{ app_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ app_domain }}/privkey.pem;
+    ssl_protocols {{ nginx_ssl_protocols }};
+    ssl_ciphers {{ nginx_ssl_ciphers }};
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:BulletinsTLS:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    client_max_body_size {{ nginx_client_max_body_size }};
+
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port {{ nginx_public_https_port }};
+
+    # Статика фронтенда: отдаётся из кеша nginx, браузер кеширует надолго
+    location /assets/ {
+        proxy_pass http://bulletins_app;
+        proxy_cache bulletins_static;
+        proxy_cache_valid 200 7d;
+        proxy_cache_use_stale error timeout updating;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Cache-Status $upstream_cache_status;
+        add_header Strict-Transport-Security "max-age=63072000" always;
+    }
+
+    # Картинки объявлений: читаются из бакета S3 и кешируются nginx
+    location /media/ {
+        limit_except GET {
+            deny all;
+        }
+        proxy_pass {{ nginx_media_upstream }};
+        proxy_set_header Host {{ media_host }};
+        proxy_set_header Authorization "";
+        proxy_ssl_server_name on;
+        proxy_hide_header Set-Cookie;
+        proxy_ignore_headers Set-Cookie;
+        proxy_cache bulletins_media;
+        proxy_cache_valid 200 30d;
+        proxy_cache_valid 403 404 1m;
+        proxy_cache_use_stale error timeout updating;
+        expires 7d;
+        add_header X-Cache-Status $upstream_cache_status;
+        add_header Strict-Transport-Security "max-age=63072000" always;
+    }
+
+    location / {
+        proxy_pass http://bulletins_app;
+        add_header Strict-Transport-Security "max-age=63072000" always;
+    }
+}
+{% endif %}

@@ -1,0 +1,35 @@
+# Рабочее место оператора: Ansible, ansible-lint, Terraform и клиент S3 (mc) в контейнере —
+# на Windows-хосте их нет. Репозиторий монтируется в /work (см. lab/compose.yaml).
+ARG BASE_REGISTRY=mirror.gcr.io/library
+ARG MC_IMAGE=mirror.gcr.io/pgsty/mc:RELEASE.2026-10-26T00-00-00Z
+
+FROM ${MC_IMAGE} AS mc
+
+FROM ${BASE_REGISTRY}/python:3.13-slim
+ARG TERRAFORM_VERSION=1.16.5
+# Зеркало релизов HashiCorp в Yandex Cloud: releases.hashicorp.com из РФ отвечает не всегда
+ARG TERRAFORM_URL=https://hashicorp-releases.yandexcloud.net/terraform
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssh-client curl unzip make git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir "ansible-core==2.21.*" "ansible-lint==26.*"
+
+RUN curl -fsSL "${TERRAFORM_URL}/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip" -o /tmp/terraform.zip \
+    && unzip -q /tmp/terraform.zip terraform -d /usr/local/bin \
+    && rm /tmp/terraform.zip \
+    && terraform version
+
+COPY --from=mc /usr/bin/mc /usr/local/bin/mc
+# Провайдеры Terraform — через зеркало Yandex Cloud
+COPY terraformrc /root/.terraformrc
+COPY entrypoint.sh /usr/local/bin/toolbox-entrypoint
+RUN chmod 0755 /usr/local/bin/toolbox-entrypoint
+
+ENV ANSIBLE_CONFIG=/work/ansible.cfg \
+    ANSIBLE_FORCE_COLOR=1 \
+    MC_CONFIG_DIR=/tmp/.mc
+WORKDIR /work
+ENTRYPOINT ["toolbox-entrypoint"]
+CMD ["bash"]

@@ -1,0 +1,108 @@
+# Локальный стенд вместо облака (make lab-up). Всё с префиксом p315, порты хоста 28xxx.
+#   vm      — «ВМ»: Ubuntu 24.04 + systemd + sshd; её настраивает playbook.yml
+#   minio   — S3-совместимое хранилище вместо Yandex Object Storage
+#   pebble  — локальный ACME-сервер (тестовый Let's Encrypt) для certbot
+#   toolbox — Ansible/Terraform/mc для запуска команд из Makefile
+name: p315
+
+services:
+  vm:
+    build:
+      context: ./vm
+    image: p315-vm:local
+    container_name: p315-vm
+    hostname: p315-vm
+    privileged: true
+    cgroup: private
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+    volumes:
+      # Docker внутри «ВМ» хранит данные на томах, а не в overlay-файловой системе контейнера
+      - p315-vm-docker:/var/lib/docker
+      - p315-vm-containerd:/var/lib/containerd
+      - p315-lab-ssh:/lab-ssh:ro
+    ports:
+      - "127.0.0.1:28080:80"
+      - "127.0.0.1:28443:443"
+      - "127.0.0.1:28022:22"
+    networks:
+      lab:
+        aliases:
+          # Домен приложения внутри стенда ведёт на «ВМ» (так его проверяет Pebble)
+          - bulletins.127.0.0.1.nip.io
+
+  minio:
+    image: mirror.gcr.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    container_name: p315-minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    env_file:
+      - path: ./minio.env
+        required: false
+    environment:
+      # Разрешает адреса вида bucket.s3.p315.test (virtual-hosted style, как в облаке)
+      MINIO_DOMAIN: s3.p315.test
+    volumes:
+      - p315-minio-data:/data
+    ports:
+      - "127.0.0.1:28901:9001"
+    networks:
+      lab:
+        aliases:
+          - s3.p315.test
+          - bulletins.s3.p315.test
+
+  pebble:
+    image: ghcr.io/letsencrypt/pebble:2.10.1
+    container_name: p315-pebble
+    command: ["-config", "/lab/pebble-config.json"]
+    environment:
+      PEBBLE_VA_NOSLEEP: "1"
+    volumes:
+      - ./pebble-config.json:/lab/pebble-config.json:ro
+    networks:
+      lab:
+        aliases:
+          - pebble
+
+  toolbox:
+    build:
+      context: ./toolbox
+    image: p315-toolbox:local
+    profiles: [tools]
+    working_dir: /work
+    environment:
+      # Авторизация Terraform в Yandex Cloud передаётся из окружения хоста
+      - YC_TOKEN
+      - YC_CLOUD_ID
+      - YC_SERVICE_ACCOUNT_KEY_FILE
+      # Провайдеры Terraform (сотни МБ) — в томе, а не в папке хоста
+      - TF_DATA_DIR=/tf-data
+    volumes:
+      - ..:/work
+      - p315-lab-ssh:/lab-ssh
+      - p315-ansible:/root/.ansible
+      - p315-terraform:/tf-data
+      # Ключи для настоящего сервера: make deploy SSH_KEYS_DIR=~/.ssh
+      - ${SSH_KEYS_DIR:-./ssh-keys}:/ssh-host:ro
+    networks:
+      - lab
+
+networks:
+  lab:
+    name: p315-lab
+
+volumes:
+  p315-vm-docker:
+    name: p315-vm-docker
+  p315-vm-containerd:
+    name: p315-vm-containerd
+  p315-lab-ssh:
+    name: p315-lab-ssh
+  p315-ansible:
+    name: p315-ansible
+  p315-minio-data:
+    name: p315-minio-data
+  p315-terraform:
+    name: p315-terraform

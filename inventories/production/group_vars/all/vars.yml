@@ -1,0 +1,47 @@
+---
+# Настоящий сервер в Yandex Cloud. Секреты — в vault.yml рядом (Ansible Vault),
+# здесь только ссылки на них.
+
+# --- Подключение к ВМ ---
+ansible_host: "{{ vault_server_host }}"
+ansible_user: "{{ vault_server_user }}"
+
+# --- Домен (A-запись указывает на публичный IP ВМ, см. README → «Домен и DNS») ---
+app_domain: bulletins.example.ru
+
+# --- Образ приложения из GitHub Container Registry ---
+app_image: ghcr.io/kicha3007-boop/devops-engineer-from-scratch-project-315
+# latest — последняя сборка main; для отката — тег-sha нужной сборки (make deploy TAG=<sha>)
+app_image_tag: latest
+# Нужны, только если пакет в GHCR приватный
+app_registry_username: "{{ vault_app_registry_username | default('') }}"
+app_registry_password: "{{ vault_app_registry_password | default('') }}"
+
+# --- Docker ---
+docker_users: []
+docker_daemon_options:
+  log-driver: json-file
+  log-opts:
+    max-size: 20m
+    max-file: "3"
+
+# --- База данных (контейнер PostgreSQL на этом же сервере) ---
+postgres_db: bulletins
+postgres_user: bulletins
+postgres_password: "{{ vault_postgres_password }}"
+
+# --- Объектное хранилище: Yandex Object Storage (бакет и ключи создаёт terraform/) ---
+app_s3_endpoint: https://storage.yandexcloud.net
+app_s3_region: ru-central1
+app_s3_bucket: bulletins-kicha3007-boop
+app_s3_access_key: "{{ vault_s3_access_key }}"
+app_s3_secret_key: "{{ vault_s3_secret_key }}"
+app_s3_cdn_url: "https://{{ app_domain }}/media"
+
+# --- HTTPS: Let's Encrypt ---
+certbot_email: "{{ vault_certbot_email }}"
+certbot_acme_server: ""
+
+# --- Межсетевой экран ---
+firewall_enabled: true
+firewall_allowed_tcp_ports: [22, 80, 443]

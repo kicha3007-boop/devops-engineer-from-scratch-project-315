@@ -1,0 +1,46 @@
+---
+# Подготовка сервера и деплой «Доски объявлений».
+#   make deploy                      — всё целиком (настоящий сервер, inventories/production)
+#   make lab-deploy                  — то же на локальном стенде (inventories/lab)
+#   make deploy TAGS=app TAG=<sha>   — только (пере)деплой приложения нужной сборки
+- name: Подготовить сервер и развернуть приложение
+  hosts: all
+  become: true
+
+  pre_tasks:
+    # Список установленных пакетов: в режиме --check на чистом сервере задачи,
+    # которым нужен ещё не установленный пакет (docker, nginx, ufw, certbot), пропускаются
+    - name: Собрать список установленных пакетов
+      ansible.builtin.package_facts:
+      tags: [always]
+
+    - name: Проверить, что секреты из Ansible Vault подключены
+      ansible.builtin.assert:
+        that:
+          - postgres_password | length > 0
+          - app_s3_access_key | length > 0
+          - app_s3_secret_key | length > 0
+        fail_msg: >-
+          Не заданы секреты: нужен group_vars/all/vault.yml в каталоге инвентаря
+          (шаблон — inventories/vault.yml.example) и файл пароля .vault_pass, см. README.
+        quiet: true
+      when: not ansible_check_mode
+      tags: [always]
+
+  roles:
+    - role: common
+      tags: [server, common]
+    - role: geerlingguy.docker
+      tags: [server, docker]
+    - role: docker_access
+      tags: [server, docker]
+    - role: firewall
+      tags: [server, firewall]
+    - role: postgres
+      tags: [app, postgres]
+    - role: app
+      tags: [app]
+    - role: nginx
+      tags: [web, nginx]
+    - role: certbot
+      tags: [web, certbot]

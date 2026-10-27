@@ -1,0 +1,50 @@
+---
+- name: Установить certbot
+  ansible.builtin.apt:
+    name: certbot
+    state: present
+
+- name: Выпустить сертификат и настроить продление
+  when: not ansible_check_mode or 'certbot' in ansible_facts.packages
+  block:
+    - name: Создать каталог хуков продления
+      ansible.builtin.file:
+        path: /etc/letsencrypt/renewal-hooks/deploy
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Перезагружать nginx после продления сертификата
+      ansible.builtin.template:
+        src: reload-nginx.sh.j2
+        dest: /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Выпустить сертификат (только если его ещё нет)
+      ansible.builtin.command:
+        argv: >-
+          {{ ['certbot', 'certonly', '--webroot', '-w', certbot_webroot,
+              '--cert-name', app_domain, '--non-interactive', '--agree-tos', '--keep-until-expiring']
+             + (certbot_domains | map('regex_replace', '^', '--domains=') | list)
+             + (['--email', certbot_email] if certbot_email | length > 0 else ['--register-unsafely-without-email'])
+             + (['--server', certbot_acme_server] if certbot_acme_server | length > 0 else []) }}
+        creates: "/etc/letsencrypt/live/{{ app_domain }}/fullchain.pem"
+
+    - name: Включить таймер автоматического продления
+      ansible.builtin.systemd_service:
+        name: certbot.timer
+        state: started
+        enabled: true
+
+    - name: Включить HTTPS в конфигурации nginx
+      ansible.builtin.include_role:
+        name: nginx
+        tasks_from: site
+        apply:
+          tags: [web, certbot]
+
+    - name: Применить конфигурацию nginx с HTTPS
+      ansible.builtin.meta: flush_handlers

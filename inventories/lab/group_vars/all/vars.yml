@@ -1,0 +1,52 @@
+---
+# Локальный стенд (make lab-up): «ВМ» — контейнер p315-vm в docker-сети p315-lab.
+# Отличия от production только в адресах: S3 — MinIO, ACME — Pebble, домен — nip.io.
+# Секреты — в vault.yml рядом; его генерирует make lab-secrets (в git не попадает).
+
+# --- Подключение к «ВМ» по SSH (ключ генерируется make lab-up) ---
+ansible_host: p315-vm
+ansible_user: ubuntu
+ansible_ssh_private_key_file: /lab-ssh/id_ed25519
+# «ВМ» пересоздаётся вместе со стендом — её ключ хоста каждый раз новый
+ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+# --- Домен: *.127.0.0.1.nip.io указывает на 127.0.0.1, порты стенда проброшены на хост ---
+app_domain: bulletins.127.0.0.1.nip.io
+lab_https_port: 28443
+nginx_public_https_port: "{{ lab_https_port }}"
+
+# --- Образ приложения ---
+app_image: ghcr.io/kicha3007-boop/devops-engineer-from-scratch-project-315
+app_image_tag: latest
+app_image_pull: true
+
+# --- Docker: образы Docker Hub через зеркало (Docker Hub из РФ часто недоступен) ---
+docker_users: []
+docker_daemon_options:
+  registry-mirrors:
+    - https://mirror.gcr.io
+  log-driver: json-file
+  log-opts:
+    max-size: 20m
+    max-file: "3"
+
+# --- База данных ---
+postgres_db: bulletins
+postgres_user: bulletins
+postgres_password: "{{ vault_postgres_password }}"
+
+# --- Объектное хранилище: MinIO в контейнере p315-minio (бакет создаёт make lab-s3) ---
+app_s3_endpoint: http://s3.p315.test:9000
+app_s3_region: us-east-1
+app_s3_bucket: bulletins
+app_s3_access_key: "{{ vault_s3_access_key }}"
+app_s3_secret_key: "{{ vault_s3_secret_key }}"
+app_s3_cdn_url: "https://{{ app_domain }}:{{ lab_https_port }}/media"
+
+# --- HTTPS: локальный ACME-сервер Pebble вместо Let's Encrypt ---
+certbot_email: admin@example.com
+certbot_acme_server: https://pebble:14000/dir
+
+# --- Межсетевой экран ---
+firewall_enabled: true
+firewall_allowed_tcp_ports: [22, 80, 443]

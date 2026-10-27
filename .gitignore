@@ -37,3 +37,32 @@ out/
 .vscode/
 *.db
 .lycheecache
+
+### Инфраструктура ###
+# Пароль Ansible Vault — только локально
+.vault_pass
+.vault_pass*
+*.retry
+.ansible/
+tmp/
+# Секреты локального стенда генерирует make lab-secrets
+inventories/lab/group_vars/all/vault.yml
+lab/minio.env
+lab/ssh-keys/
+# Terraform: состояние, провайдеры, значения переменных
+terraform/.terraform/
+terraform/.terraform.lock.hcl.bak
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+!terraform/*.tfvars.example
+crash.log
+# Прочее
+.env
+*.pem
+*.key
+*.zip
+*.tar
+*.tar.gz
+# Скрипты стенда (перекрывает правило bin/ выше)
+!lab/bin/

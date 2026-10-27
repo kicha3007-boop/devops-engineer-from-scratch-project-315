@@ -1,0 +1,9 @@
+---
+# Сертификат Let's Encrypt через certbot (проверка HTTP-01 через webroot nginx)
+certbot_email: ""
+# Адрес ACME-сервера. Пусто — боевой Let's Encrypt; для тестов можно staging:
+# https://acme-staging-v02.api.letsencrypt.org/directory
+certbot_acme_server: ""
+certbot_domains:
+  - "{{ app_domain }}"
+certbot_webroot: "{{ nginx_acme_webroot }}"

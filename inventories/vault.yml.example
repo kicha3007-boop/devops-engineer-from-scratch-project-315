@@ -1,0 +1,22 @@
+---
+# Шаблон секретов. Создать зашифрованный файл:
+#   cp inventories/vault.yml.example inventories/production/group_vars/all/vault.yml
+#   (подставить значения)
+#   make vault-encrypt          # зашифровать; править потом: make vault-edit
+# Пароль от Vault — в файле .vault_pass в корне репозитория (в git не попадает).
+
+# Публичный IP (или имя) ВМ и пользователь, заданный в метаданных ВМ
+vault_server_host: 203.0.113.10
+vault_server_user: ubuntu
+
+vault_postgres_password: change-me
+
+# Статический ключ сервисного аккаунта для бакета: terraform output (см. README)
+vault_s3_access_key: YCAJ...
+vault_s3_secret_key: YCP...
+
+vault_certbot_email: admin@example.ru
+
+# Только если пакет в GHCR приватный: логин GitHub и токен с правом read:packages
+vault_app_registry_username: ""
+vault_app_registry_password: ""
