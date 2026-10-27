@@ -63,7 +63,7 @@ toolbox:
 
 # Сторонние роли и коллекции из requirements.yml (с повтором: Galaxy иногда обрывает загрузку)
 install:
-	for i in 1 2 3; do $(TOOLBOX) ansible-galaxy install -r requirements.yml && exit 0; sleep 5; done; exit 1
+	for i in 1 2 3 4 5; do $(TOOLBOX) ansible-galaxy install -r requirements.yml && exit 0; sleep 10; done; exit 1
 
 setup: toolbox install
 

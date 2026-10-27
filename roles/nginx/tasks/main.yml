@@ -3,6 +3,10 @@
   ansible.builtin.apt:
     name: nginx
     state: present
+  register: nginx_apt
+  until: nginx_apt is succeeded
+  retries: 3
+  delay: 10
 
 - name: Настроить nginx
   when: not ansible_check_mode or 'nginx' in ansible_facts.packages

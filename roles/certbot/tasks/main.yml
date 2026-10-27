@@ -3,6 +3,10 @@
   ansible.builtin.apt:
     name: certbot
     state: present
+  register: certbot_apt
+  until: certbot_apt is succeeded
+  retries: 3
+  delay: 10
 
 - name: Выпустить сертификат и настроить продление
   when: not ansible_check_mode or 'certbot' in ansible_facts.packages

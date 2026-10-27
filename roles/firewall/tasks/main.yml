@@ -3,6 +3,10 @@
   ansible.builtin.apt:
     name: ufw
     state: present
+  register: firewall_apt
+  until: firewall_apt is succeeded
+  retries: 3
+  delay: 10
   when: firewall_enabled | bool
 
 # В режиме --check на чистом сервере ufw ещё не установлен — настраивать нечего

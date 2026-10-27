@@ -25,7 +25,8 @@
 
 ### Что проверено на локальном стенде
 
-`make lab-deploy` дважды подряд: первый прогон `failed=0`, второй — `changed=0`. Вывод `make lab-check`:
+С нуля (`make lab-down && make lab-up`), образ — `latest` из GHCR, собранный CI: первый
+`make lab-deploy` — `ok=60 changed=27 failed=0`, второй — `ok=56 changed=0 failed=0`. Вывод `make lab-check`:
 
 ```text
 HTTPS и nginx
@@ -56,7 +57,7 @@ S3: загрузка и скачивание через приложение
 ```
 
 После `make lab-reboot` контейнеры БД и приложения поднялись сами (~20 с до `healthy`),
-объявление #11 на месте. Также проверены: `terraform validate` — `Success! The configuration is valid.`,
+объявление #11 на месте, повторный `make lab-deploy` — `changed=0`. Также проверены: `terraform validate` — `Success! The configuration is valid.`,
 `ansible-lint` — `Passed: 0 failure(s), 0 warning(s)` (профиль `production`), проверка из образа
 Хекслета (`ansible-playbook --check` по localhost) — `All tests passed`.
 

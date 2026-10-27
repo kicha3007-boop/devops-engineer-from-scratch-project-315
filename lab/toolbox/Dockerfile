@@ -10,13 +10,14 @@ ARG TERRAFORM_VERSION=1.16.5
 # Зеркало релизов HashiCorp в Yandex Cloud: releases.hashicorp.com из РФ отвечает не всегда
 ARG TERRAFORM_URL=https://hashicorp-releases.yandexcloud.net/terraform
 
-RUN apt-get update \
+RUN echo 'Acquire::Retries "10";' > /etc/apt/apt.conf.d/80-retries \
+    && apt-get update \
     && apt-get install -y --no-install-recommends openssh-client curl unzip make git \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir "ansible-core==2.21.*" "ansible-lint==26.*"
+RUN pip install --no-cache-dir --retries 10 "ansible-core==2.21.*" "ansible-lint==26.*"
 
-RUN curl -fsSL "${TERRAFORM_URL}/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip" -o /tmp/terraform.zip \
+RUN curl -fsSL --retry 5 "${TERRAFORM_URL}/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip" -o /tmp/terraform.zip \
     && unzip -q /tmp/terraform.zip terraform -d /usr/local/bin \
     && rm /tmp/terraform.zip \
     && terraform version
